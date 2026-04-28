@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高职院校培训招标信息搜集系统 - Windows本地部署指南</title>
+    <!--[if gte mso 9]>
+    <xml>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+        body {
+            font-family: "微软雅黑", "Microsoft YaHei", Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.8;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        h1 {
+            font-size: 22pt;
+            color: #1a5490;
+            text-align: center;
+            border-bottom: 3px solid #1a5490;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            font-size: 16pt;
+            color: #1a5490;
+            margin-top: 30px;
+            border-left: 4px solid #1a5490;
+            padding-left: 10px;
+        }
+        h3 {
+            font-size: 13pt;
+            color: #333;
+            margin-top: 20px;
+        }
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        code, pre {
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 11pt;
+            background-color: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-left: 4px solid #1a5490;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #1a5490;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #f8d7da;
+            padding: 10px;
+            border-left: 4px solid #dc3545;
+            margin: 15px 0;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 30px 0;
+        }
+        .toc {
+            background-color: #f0f7ff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .toc ul {
+            list-style-type: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>高职院校培训招标信息搜集系统<br>Windows本地部署指南</h1>
+
+    <div class="toc">
+        <strong>目录</strong>
+        <ul>
+            <li>一、环境准备</li>
+            <li>二、数据库配置</li>
+            <li>三、获取项目代码</li>
+            <li>四、配置环境变量</li>
+            <li>五、安装依赖</li>
+            <li>六、初始化数据库</li>
+            <li>七、局域网访问配置</li>
+            <li>八、生产模式部署（长期运行）</li>
+            <li>九、常见问题</li>
+            <li>十、完整部署脚本</li>
+        </ul>
+    </div>
+
+    <hr>
+
+    <h2>一、环境准备</h2>
+
+    <h3>1.1 安装 Node.js</h3>
+    <p>下载并安装 <strong>Node.js 20 LTS</strong>：<br>
+    <a href="https://nodejs.org/">https://nodejs.org/</a></p>
+    <p>安装完成后，打开 PowerShell 验证：</p>
+    <pre>node -v
+# 应显示 v20.x.x
+
+npm -v</pre>
+
+    <h3>1.2 安装 pnpm</h3>
+    <pre>npm install -g pnpm</pre>
+    <p>验证：</p>
+    <pre>pnpm -v</pre>
+
+    <h3>1.3 安装 PostgreSQL</h3>
+
+    <p><strong>方式一：下载安装包（推荐）</strong></p>
+    <ul>
+        <li>下载 <a href="https://www.enterprisedb.com/downloads/postgres-postgresql-downloads">PostgreSQL 16 Windows 安装包</a></li>
+        <li>运行安装程序</li>
+        <li>记住设置的密码，默认端口 5432</li>
+    </ul>
+
+    <p><strong>方式二：使用 Chocolatey</strong></p>
+    <pre># 先安装 Chocolatey
+Set-ExecutionPolicy Bypass -Scope Process -Force
+iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+
+# 安装 PostgreSQL
+choco install postgresql16 -y</pre>
+
+    <hr>
+
+    <h2>二、数据库配置</h2>
+
+    <h3>2.1 启动 PostgreSQL 服务</h3>
+    <p>Windows 服务中确保 PostgreSQL 服务正在运行：</p>
+    <pre># 查看服务状态
+Get-Service | Where-Object {$_.Name -like "*postgres*"}</pre>
+
+    <p>如果未运行，启动它：</p>
+    <pre>Start-Service postgresql-x64-16</pre>
+    <p class="highlight">注意：服务名称可能因版本而异，例如 postgresql-x64-14、postgresql-x64-15 等</p>
+
+    <h3>2.2 创建数据库和用户</h3>
+    <p>打开 <strong>pgAdmin</strong> 或使用 <strong>psql</strong> 命令行：</p>
+    <pre># 连接到 postgres 数据库（默认）
+psql -U postgres -h localhost</pre>
+
+    <p>在 psql 中执行以下命令：</p>
+    <pre>CREATE DATABASE tender_db;
+CREATE USER tender_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE tender_db TO tender_user;
+\q</pre>
+
+    <hr>
+
+    <h2>三、获取项目代码</h2>
+
+    <pre># 如果有 Git 仓库
+git clone &lt;你的仓库地址&gt; tender-system
+cd tender-system
+
+# 或者解压 ZIP 包到本地目录</pre>
+
+    <hr>
+
+    <h2>四、配置环境变量</h2>
+
+    <p>在项目根目录创建 <strong>.env.local</strong> 文件：</p>
+    <pre># 数据库连接
+DATABASE_URL=postgresql://tender_user:your_password@localhost:5432/tender_db
+
+# 服务端口
+PORT=5000</pre>
+
+    <div class="warning">
+        <strong>注意：</strong>请将 <code>your_password</code> 替换为你设置的数据库密码
+    </div>
+
+    <hr>
+
+    <h2>五、安装依赖</h2>
+
+    <pre>pnpm install</pre>
+
+    <hr>
+
+    <h2>六、初始化数据库</h2>
+
+    <pre>pnpm dev</pre>
+
+    <p>等待服务启动后，打开浏览器访问 <a href="http://localhost:5000">http://localhost:5000</a> 初始化数据库，或者用 PowerShell 命令：</p>
+
+    <pre>Invoke-RestMethod -Method Post -Uri "http://localhost:5000/api/database/init"</pre>
+
+    <hr>
+
+    <h2>七、局域网访问配置</h2>
+
+    <h3>7.1 修改启动脚本</h3>
+    <p>找到项目中的 <code>scripts/dev.sh</code> 文件，修改为允许外部访问：</p>
+
+    <p><strong>修改前：</strong></p>
+    <pre>next dev -p 5000</pre>
+
+    <p><strong>修改后：</strong></p>
+    <pre>next dev -p 5000 -H 0.0.0.0</pre>
+
+    <p>或者直接用命令行启动：</p>
+    <pre>npx next dev -p 5000 -H 0.0.0.0</pre>
+
+    <h3>7.2 关闭防火墙（临时测试）</h3>
+    <pre># 关闭 Windows 防火墙（仅供测试）
+netsh advfirewall set allprofiles state off
+
+# 测试完成后重新开启
+netsh advfirewall set allprofiles state on</pre>
+
+    <h3>7.3 获取本机局域网 IP</h3>
+    <pre>ipconfig</pre>
+
+    <p>找到 <strong>IPv4 地址</strong>，例如 <code>192.168.1.100</code></p>
+
+    <h3>7.4 局域网访问</h3>
+    <p>在局域网其他设备浏览器访问：</p>
+    <pre>http://192.168.1.100:5000</pre>
+
+    <hr>
+
+    <h2>八、生产模式部署（长期运行）</h2>
+
+    <h3>8.1 构建项目</h3>
+    <pre>pnpm build</pre>
+
+    <h3>8.2 使用 PM2 守护进程</h3>
+    <pre># 安装 PM2
+npm install -g pm2
+
+# 启动服务（允许外部访问）
+pm2 start npx --name tender-app -- start -p 5000 -H 0.0.0.0
+
+# 保存进程列表（开机自启）
+pm2 save
+
+# 设置开机自启
+pm2 startup</pre>
+
+    <h3>8.3 查看状态</h3>
+    <pre>pm2 status
+pm2 logs tender-app</pre>
+
+    <hr>
+
+    <h2>九、常见问题</h2>
+
+    <table>
+        <tr>
+            <th>问题</th>
+            <th>解决方案</th>
+        </tr>
+        <tr>
+            <td><code>pnpm : 无法识别</code></td>
+            <td>重新打开 PowerShell 或重启电脑</td>
+        </tr>
+        <tr>
+            <td>数据库连接失败</td>
+            <td>检查 PostgreSQL 服务是否启动，确认密码正确</td>
+        </tr>
+        <tr>
+            <td>端口被占用</td>
+            <td>换一个端口：设置 <code>PORT=5001</code>，启动时用 <code>pnpm dev -p 5001</code></td>
+        </tr>
+        <tr>
+            <td>局域网无法访问</td>
+            <td>确认防火墙已关闭，或添加 5000 端口例外</td>
+        </tr>
+    </table>
+
+    <h3>9.1 防火墙添加端口例外</h3>
+    <pre>netsh advfirewall firewall add rule name="Tender App" dir=in action=allow protocol=tcp localport=5000</pre>
+
+    <hr>
+
+    <h2>十、完整部署脚本</h2>
+
+    <p>在项目根目录创建 <strong>deploy.ps1</strong> 文件：</p>
+
+    <pre># Windows 部署脚本
+
+Write-Host "开始部署招标信息搜集系统..." -ForegroundColor Green
+
+# 1. 安装依赖
+Write-Host "安装依赖..." -ForegroundColor Yellow
+pnpm install
+
+# 2. 构建项目
+Write-Host "构建项目..." -ForegroundColor Yellow
+pnpm build
+
+# 3. 启动 PM2
+Write-Host "启动服务..." -ForegroundColor Yellow
+pm2 start npx --name tender-app -- start -p 5000 -H 0.0.0.0
+
+# 4. 保存状态
+pm2 save
+pm2 startup
+
+# 5. 显示信息
+$ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" }).IPAddress | Select-Object -First 1
+
+Write-Host ""
+Write-Host "部署完成！" -ForegroundColor Green
+Write-Host "本机访问: http://localhost:5000" -ForegroundColor Cyan
+Write-Host "局域网访问: http://$ip`:5000" -ForegroundColor Cyan</pre>
+
+    <h3>运行部署脚本</h3>
+    <pre>.\deploy.ps1</pre>
+
+    <hr>
+
+    <h2>技术信息</h2>
+
+    <table>
+        <tr>
+            <th>项目</th>
+            <th>说明</th>
+        </tr>
+        <tr>
+            <td>前端框架</td>
+            <td>Next.js 16 (App Router) + React 19</td>
+        </tr>
+        <tr>
+            <td>语言</td>
+            <td>TypeScript 5</td>
+        </tr>
+        <tr>
+            <td>UI组件</td>
+            <td>shadcn/ui + Radix UI + Tailwind CSS</td>
+        </tr>
+        <tr>
+            <td>数据库</td>
+            <td>PostgreSQL + Drizzle ORM</td>
+        </tr>
+        <tr>
+            <td>包管理器</td>
+            <td>pnpm (必须使用)</td>
+        </tr>
+        <tr>
+            <td>默认端口</td>
+            <td>5000</td>
+        </tr>
+        <tr>
+            <td>Node 版本</td>
+            <td>推荐 18-20 LTS</td>
+        </tr>
+    </table>
+
+    <hr>
+
+    <p style="text-align: center; color: #666; margin-top: 40px;">
+        高职院校培训招标信息搜集系统 - 部署文档<br>
+        如有问题，请联系技术支持
+    </p>
+
+</body>
+</html>
