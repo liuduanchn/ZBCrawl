@@ -150,7 +150,13 @@ npm -v</pre>
     <p>验证：</p>
     <pre>pnpm -v</pre>
 
-    <h3>1.3 安装 PostgreSQL</h3>
+    <h3>1.3 安装 Python</h3>
+    <p>安装 <strong>Python 3.9+</strong>，并确保 <code>python</code> 命令可在 PowerShell 中直接使用：</p>
+    <pre>python --version
+# 应显示 Python 3.9.x 或更高版本</pre>
+    <p>如果系统中有多个 Python，可在环境变量中配置 <code>PYTHON_BIN</code> 指向实际解释器路径。</p>
+
+    <h3>1.4 安装 PostgreSQL</h3>
 
     <p><strong>方式一：下载安装包（推荐）</strong></p>
     <ul>
@@ -331,6 +337,9 @@ Write-Host "开始部署招标信息搜集系统..." -ForegroundColor Green
 # 1. 安装依赖
 Write-Host "安装依赖..." -ForegroundColor Yellow
 pnpm install
+
+# 可选：指定 Python 解释器路径
+# $env:PYTHON_BIN = "C:\Python39\python.exe"
 
 # 2. 构建项目
 Write-Host "构建项目..." -ForegroundColor Yellow

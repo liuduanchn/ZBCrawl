@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -33,10 +32,12 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RegionSelector } from "@/components/RegionSelector";
 import { HelpManual } from "@/components/HelpManual";
 import { KeywordSelector, KeywordItem } from "@/components/KeywordSelector";
 import { ExcludeKeywordSelector } from "@/components/ExcludeKeywordSelector";
+import { DEFAULT_SEARCH_PROVIDER, SearchProvider } from "@/lib/search/types";
 import { Search, Play, RefreshCw, Download, Trash2, List, Filter, History, ChevronUp, ChevronDown } from "lucide-react";
 
 interface Tender {
@@ -96,6 +97,7 @@ interface CrawlMessage {
 }
 
 export default function TendersPage() {
+  const SEARCH_PROVIDER_STORAGE_KEY = "tenders-search-provider";
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(false);
   const [crawling, setCrawling] = useState(false);
@@ -124,6 +126,7 @@ export default function TendersPage() {
 
   // 关键词选择
   const [selectedKeywords, setSelectedKeywords] = useState<KeywordItem[]>([]);
+  const [searchProvider, setSearchProvider] = useState<SearchProvider>(DEFAULT_SEARCH_PROVIDER);
   // 排除关键词选择（只支持关键词名称列表，不参与 AND/OR 逻辑）
   const [excludeKeywords, setExcludeKeywords] = useState<string[]>([]);
   const [isRegionSelectorOpen, setIsRegionSelectorOpen] = useState(false);
@@ -305,6 +308,8 @@ export default function TendersPage() {
     };
 
     const keywordDisplay = buildKeywordDisplay(selectedKeywords);
+    const searchProviderLabel =
+      searchProvider === "coze" ? "Coze WebSearch" : "Python/DuckDuckGo";
 
     // 添加提示信息
     let confirmMessage = `开始爬取招标信息？\n\n系统将使用以下关键词进行搜索：\n${keywordDisplay || "默认（培训、招标）"}\n`;
@@ -315,6 +320,12 @@ export default function TendersPage() {
       confirmMessage += `\n筛选地区：${selectedRegions.join("、")}\n`;
     }
     confirmMessage += "\n将爬取目标院校，请耐心等待。\n\n注意：\n- 爬取过程可能需要较长时间\n- 系统已添加延迟避免限流\n- 如遇限流会自动重试";
+    confirmMessage += `\n\n搜索源：${searchProviderLabel}`;
+    if (searchProvider === "python") {
+      confirmMessage += "\nPython 搜索不消耗 Coze 点数。";
+    } else {
+      confirmMessage += "\nCoze WebSearch 会消耗 Coze 资源点数。";
+    }
 
     if (!confirm(confirmMessage)) {
       return;
@@ -340,6 +351,7 @@ export default function TendersPage() {
           regions: selectedRegions.length > 0 ? selectedRegions.join(",") : undefined,
           keywords: selectedKeywords.length > 0 ? selectedKeywords : undefined,
           excludeKeywords: excludeKeywords.length > 0 ? excludeKeywords : undefined,
+          searchProvider,
         }),
       });
 
@@ -645,9 +657,20 @@ export default function TendersPage() {
   };
 
   useEffect(() => {
+    const storedSearchProvider = window.localStorage.getItem(
+      SEARCH_PROVIDER_STORAGE_KEY,
+    );
+    if (storedSearchProvider === "coze" || storedSearchProvider === "python") {
+      setSearchProvider(storedSearchProvider);
+    }
+
     fetchTenders(undefined, 1);
     fetchCrawlProgress();
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(SEARCH_PROVIDER_STORAGE_KEY, searchProvider);
+  }, [SEARCH_PROVIDER_STORAGE_KEY, searchProvider]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -1106,6 +1129,51 @@ export default function TendersPage() {
 
         {/* 爬取关键词选择 */}
         <div className="mb-4 rounded-lg border bg-card p-3">
+          <div className="mb-4 rounded-md border p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <h3 className="font-semibold text-sm">搜索源</h3>
+              <Badge
+                variant={searchProvider === "coze" ? "destructive" : "secondary"}
+                className="text-xs"
+              >
+                {searchProvider === "coze" ? "消耗 Coze 点数" : "低成本"}
+              </Badge>
+            </div>
+            <RadioGroup
+              value={searchProvider}
+              onValueChange={(value) => setSearchProvider(value as SearchProvider)}
+              className="grid grid-cols-1 gap-3 md:grid-cols-2"
+            >
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border p-3">
+                <RadioGroupItem
+                  value="python"
+                  id="search-provider-python"
+                  disabled={crawling || paused}
+                  className="mt-0.5"
+                />
+                <div>
+                  <div className="font-medium text-sm">Python/DuckDuckGo</div>
+                  <div className="text-xs text-muted-foreground">
+                    低成本替代搜索源，不消耗 Coze 点数
+                  </div>
+                </div>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border p-3">
+                <RadioGroupItem
+                  value="coze"
+                  id="search-provider-coze"
+                  disabled={crawling || paused}
+                  className="mt-0.5"
+                />
+                <div>
+                  <div className="font-medium text-sm">Coze WebSearch</div>
+                  <div className="text-xs text-muted-foreground">
+                    保留当前搜索能力，会消耗 Coze 资源点数
+                  </div>
+                </div>
+              </label>
+            </RadioGroup>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 搜索关键词 */}
             <div>
