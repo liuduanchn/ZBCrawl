@@ -54,6 +54,168 @@
 - 数据层通过 Drizzle ORM + PostgreSQL 持久化
 - 招标采集支持流式返回，前端可实时接收爬取进度与结果
 
+## Windows 本机部署（推荐）
+
+下面这套步骤是当前项目在 Windows + PowerShell 下最稳的本机运行方式，已经把实际踩过的问题一起考虑进去了。
+
+### 1. 环境准备
+
+- Node.js 20+
+- pnpm 9+
+- PostgreSQL 16+
+- Python 3.9+
+
+验证命令：
+
+```powershell
+node -v
+pnpm -v
+python --version
+```
+
+### 2. 初始化数据库
+
+项目已提供完整数据库初始化脚本：[scripts/init-db.sql](/D:/JavaCode/ZBCrawl/projects/scripts/init-db.sql)
+
+在 PowerShell 中执行：
+
+```powershell
+& 'C:\Program Files\PostgreSQL\16\bin\psql.exe' -U postgres -d postgres -f .\scripts\init-db.sql
+```
+
+这一步会完成：
+
+- 创建 `tender_user`
+- 创建 `tender_db`
+- 创建全部业务表
+- 初始化默认关键词
+- 授予 `tender_user` 对现有表和后续新表的权限
+- 修正“数据库能连上但读写表报权限错误”的问题
+
+### 3. 配置环境变量
+
+在项目根目录创建 `.env.local`，至少包含：
+
+```env
+DATABASE_URL=postgresql://tender_user:<DB_PASSWORD>@localhost:5432/tender_db
+PGDATABASE_URL=postgresql://tender_user:<DB_PASSWORD>@localhost:5432/tender_db
+PYTHON_BIN=python
+PORT=5000
+```
+
+注意：
+
+- `DATABASE_URL` 和 `PGDATABASE_URL` 必须保持一致
+- `PGDATABASE_URL` 不能保留 `your_password` 这类占位值
+- 如果系统里有多个 Python，请把 `PYTHON_BIN` 改成实际解释器绝对路径
+
+### 4. 安装依赖
+
+```powershell
+pnpm install
+```
+
+### 5. 启动开发服务
+
+推荐直接使用 Next.js 命令：
+
+```powershell
+pnpm next dev --webpack --port 5000
+```
+
+说明：
+
+- `pnpm dev` 实际走的是 `bash ./scripts/dev.sh`
+- 如果本机没有 `bash` 或 Git Bash，直接用上面的命令更稳
+
+### 6. 启动后检查
+
+先检查数据库健康状态：
+
+- [http://localhost:5000/api/health/database](http://localhost:5000/api/health/database)
+- [http://localhost:5000/api/keywords?category=search](http://localhost:5000/api/keywords?category=search)
+
+预期：
+
+- `health/database` 返回 `success: true`
+- `keywords?category=search` 能看到默认关键词，如“培训 / 招标 / 采购”
+
+### 7. 首次运行建议验证
+
+按下面顺序检查最容易定位问题：
+
+1. 学校管理页能正常打开
+2. 目标学校爬取能写入 `schools` 表
+3. 招标爬取页面能正常读取关键词
+4. 使用 `Python/DuckDuckGo` 搜索源启动一次小范围招标爬取
+
+## 本机部署常见问题
+
+### 1. 数据库连接正常，但读取表失败
+
+常见原因：
+
+- 表是用 `postgres` 建的，但应用用 `tender_user` 连
+- 没给 `tender_user` 授权
+
+处理方式：
+
+- 重新执行 [scripts/init-db.sql](/D:/JavaCode/ZBCrawl/projects/scripts/init-db.sql)
+
+### 2. 学校爬取时报数据库未配置
+
+常见原因：
+
+- 只配置了 `DATABASE_URL`
+- 没配置 `PGDATABASE_URL`
+
+处理方式：
+
+- 在 `.env.local` 里同时配置 `DATABASE_URL` 和 `PGDATABASE_URL`
+- 修改后必须重启开发服务
+
+### 3. `pnpm dev` 无法启动
+
+常见原因：
+
+- 当前 PowerShell 环境没有 `bash`
+
+处理方式：
+
+```powershell
+pnpm next dev --webpack --port 5000
+```
+
+### 4. 搜索源为 Python 时无法工作
+
+常见原因：
+
+- 本机没有 Python
+- `PYTHON_BIN` 指向错误解释器
+
+处理方式：
+
+```powershell
+python --version
+```
+
+必要时在 `.env.local` 中显式指定：
+
+```env
+PYTHON_BIN=C:\Python39\python.exe
+```
+
+### 5. 改了 `.env.local` 后接口仍然报旧错误
+
+常见原因：
+
+- Next.js 已经启动，未重新加载环境变量
+
+处理方式：
+
+- 停掉当前开发服务
+- 重新执行 `pnpm next dev --webpack --port 5000`
+
 这是一个基于 [Next.js 16](https://nextjs.org) + [shadcn/ui](https://ui.shadcn.com) 的全栈应用项目，由扣子编程 CLI 创建。
 
 ## 快速开始

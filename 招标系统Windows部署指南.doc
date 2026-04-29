@@ -114,6 +114,38 @@
     </style>
 </head>
 <body>
+    <div class="warning">
+        <strong>重要更新：</strong>本说明后续旧步骤中有部分部署方式已经不再是当前项目在 Windows + PowerShell 下的最稳方案。请优先按下面这段“最新推荐部署流程”操作；如果与后文旧步骤冲突，以本段为准。
+    </div>
+
+    <h2>最新推荐部署流程</h2>
+    <ol>
+        <li>确认已安装 Node.js 20+、pnpm 9+、PostgreSQL 16+、Python 3.9+</li>
+        <li>在项目根目录执行：<code>&amp; 'C:\Program Files\PostgreSQL\16\bin\psql.exe' -U postgres -d postgres -f .\scripts\init-db.sql</code></li>
+        <li>创建 <code>.env.local</code>，同时配置 <code>DATABASE_URL</code> 和 <code>PGDATABASE_URL</code></li>
+        <li>执行 <code>pnpm install</code></li>
+        <li>执行 <code>pnpm next dev --webpack --port 5000</code></li>
+        <li>启动后访问 <code>/api/health/database</code> 和 <code>/api/keywords?category=search</code> 验证环境</li>
+    </ol>
+
+    <p><strong>推荐的 .env.local 示例：</strong></p>
+    <pre>DATABASE_URL=postgresql://tender_user:&lt;DB_PASSWORD&gt;@localhost:5432/tender_db
+PGDATABASE_URL=postgresql://tender_user:&lt;DB_PASSWORD&gt;@localhost:5432/tender_db
+PYTHON_BIN=python
+PORT=5000</pre>
+
+    <div class="warning">
+        <strong>注意 1：</strong><code>DATABASE_URL</code> 和 <code>PGDATABASE_URL</code> 必须保持一致。项目内不同模块会分别读取这两个变量，如果只配置其中一个，或者两个值不同，会出现“数据库健康检查正常，但学校爬取或关键词读取失败”的问题。
+    </div>
+    <div class="warning">
+        <strong>注意 2：</strong>推荐使用 <code>scripts/init-db.sql</code> 一次性初始化数据库。它会创建用户、数据库、全部业务表、默认关键词，并补齐 <code>tender_user</code> 的表权限。不要只手工创建数据库和用户后就直接启动项目。
+    </div>
+    <div class="warning">
+        <strong>注意 3：</strong>在纯 PowerShell 环境下，不推荐直接使用 <code>pnpm dev</code>，因为它实际会执行 <code>bash ./scripts/dev.sh</code>。如果本机没有 Git Bash 或其他 bash 环境，请直接使用 <code>pnpm next dev --webpack --port 5000</code>。
+    </div>
+    <div class="warning">
+        <strong>注意 4：</strong><code>/api/database/init</code> 更适合作为补充修复接口，不建议作为空库的一键初始化主方案。修改 <code>.env.local</code> 后，也必须完全重启 Next.js 开发服务。
+    </div>
     <h1>高职院校培训招标信息搜集系统<br>Windows本地部署指南</h1>
 
     <div class="toc">
@@ -193,7 +225,7 @@ psql -U postgres -h localhost</pre>
 
     <p>在 psql 中执行以下命令：</p>
     <pre>CREATE DATABASE tender_db;
-CREATE USER tender_user WITH PASSWORD 'your_password';
+CREATE USER tender_user WITH PASSWORD '&lt;DB_PASSWORD&gt;';
 GRANT ALL PRIVILEGES ON DATABASE tender_db TO tender_user;
 \q</pre>
 
@@ -213,13 +245,17 @@ cd tender-system
 
     <p>在项目根目录创建 <strong>.env.local</strong> 文件：</p>
     <pre># 数据库连接
-DATABASE_URL=postgresql://tender_user:your_password@localhost:5432/tender_db
+DATABASE_URL=postgresql://tender_user:&lt;DB_PASSWORD&gt;@localhost:5432/tender_db
+PGDATABASE_URL=postgresql://tender_user:&lt;DB_PASSWORD&gt;@localhost:5432/tender_db
+
+# Python 鎼滅储瑙ｉ噴鍣紙鍙€夛級
+PYTHON_BIN=python
 
 # 服务端口
 PORT=5000</pre>
 
     <div class="warning">
-        <strong>注意：</strong>请将 <code>your_password</code> 替换为你设置的数据库密码
+        <strong>注意：</strong>当前项目建议同时配置 <code>DATABASE_URL</code> 和 <code>PGDATABASE_URL</code>，并保持完全一致；修改后必须重启开发服务。
     </div>
 
     <hr>
@@ -232,7 +268,7 @@ PORT=5000</pre>
 
     <h2>六、初始化数据库</h2>
 
-    <pre>pnpm dev</pre>
+    <pre>pnpm next dev --webpack --port 5000</pre>
 
     <p>等待服务启动后，打开浏览器访问 <a href="http://localhost:5000">http://localhost:5000</a> 初始化数据库，或者用 PowerShell 命令：</p>
 
@@ -252,7 +288,7 @@ PORT=5000</pre>
     <pre>next dev -p 5000 -H 0.0.0.0</pre>
 
     <p>或者直接用命令行启动：</p>
-    <pre>npx next dev -p 5000 -H 0.0.0.0</pre>
+    <pre>pnpm next dev --webpack --port 5000 --hostname 0.0.0.0</pre>
 
     <h3>7.2 关闭防火墙（临时测试）</h3>
     <pre># 关闭 Windows 防火墙（仅供测试）
@@ -313,7 +349,7 @@ pm2 logs tender-app</pre>
         </tr>
         <tr>
             <td>端口被占用</td>
-            <td>换一个端口：设置 <code>PORT=5001</code>，启动时用 <code>pnpm dev -p 5001</code></td>
+            <td>换一个端口：设置 <code>PORT=5001</code>，启动时用 <code>pnpm next dev --webpack --port 5001</code></td>
         </tr>
         <tr>
             <td>局域网无法访问</td>
