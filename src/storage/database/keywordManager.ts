@@ -4,6 +4,30 @@ import { keywords, insertKeywordSchema, updateKeywordSchema } from "./shared/sch
 import type { Keyword, InsertKeyword, UpdateKeyword } from "./shared/schema";
 
 export class KeywordManager {
+  private getDefaultKeywords(category: string, customKeywords?: string[]): InsertKeyword[] {
+    if (customKeywords && customKeywords.length > 0) {
+      return customKeywords.map((name) => ({
+        name,
+        category,
+        isDefault: 1,
+        isActive: 1,
+      }));
+    }
+
+    if (category === "exclude") {
+      return [
+        { name: "废标", category: "exclude", isDefault: 1, isActive: 1 },
+        { name: "流标", category: "exclude", isDefault: 1, isActive: 1 },
+      ];
+    }
+
+    return [
+      { name: "培训", category: "search", isDefault: 1, isActive: 1 },
+      { name: "招标", category: "search", isDefault: 1, isActive: 1 },
+      { name: "采购", category: "search", isDefault: 1, isActive: 1 },
+    ];
+  }
+
   async createKeyword(data: InsertKeyword): Promise<Keyword> {
     const db = await getDb();
     const validated = insertKeywordSchema.parse(data);
@@ -91,15 +115,11 @@ export class KeywordManager {
     return updated || null;
   }
 
-  async initDefaultKeywords(): Promise<void> {
-    const existing = await this.getKeywords({ category: "search" });
+  async initDefaultKeywords(category = "search", customKeywords?: string[]): Promise<void> {
+    const existing = await this.getKeywords({ category });
     if (existing.length > 0) return;
 
-    const defaultKeywords = [
-      { name: "培训", category: "search", isDefault: 1, isActive: 1 },
-      { name: "招标", category: "search", isDefault: 1, isActive: 1 },
-      { name: "采购", category: "search", isDefault: 1, isActive: 1 },
-    ];
+    const defaultKeywords = this.getDefaultKeywords(category, customKeywords);
 
     for (const keyword of defaultKeywords) {
       await this.createKeyword(keyword);

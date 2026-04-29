@@ -33,7 +33,7 @@ const TENDER_KEYWORDS = [
   "\u62db\u6807\u6587\u4ef6",
   "\u91c7\u8d2d\u9879\u76ee",
 ];
-const DEFAULT_KEYWORDS = [
+const DEFAULT_KEYWORDS: SearchKeyword[] = [
   { name: "\u57f9\u8bad" },
   { name: "\u62db\u6807" },
 ];

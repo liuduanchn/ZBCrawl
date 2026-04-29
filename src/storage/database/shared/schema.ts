@@ -172,6 +172,7 @@ export const insertTenderSchema = createCoercedInsertSchema(tenders).pick({
   crawledAt: true,
   link: true,
   remark: true,
+  createdAt: true,
 });
 
 export const updateTenderSchema = createCoercedInsertSchema(tenders)
@@ -306,7 +307,6 @@ export const deleteExcludedDomainSchema = z.object({
 // TypeScript types
 export type ExcludedDomain = typeof excludedDomains.$inferSelect;
 export type InsertExcludedDomain = z.infer<typeof insertExcludedDomainSchema>;
-
 
 
 
